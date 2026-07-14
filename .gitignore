@@ -1,0 +1,6 @@
+# Ignore the built binaries and output images
+build/
+*.bin
+*.o
+*.img
+
