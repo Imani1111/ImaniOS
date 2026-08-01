@@ -48,6 +48,7 @@ void clear_vga_buffer();
 void clear_line(size_t row);
 void vga_putc(int c);
 void vga_puts(const char* string);
+void vga_print_hex(uint32_t val);
 void vga_puts_at(const char* string, int row, int col, uint8_t attribute);
 void vga_print_int(uint32_t num);
 

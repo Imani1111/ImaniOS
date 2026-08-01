@@ -34,6 +34,7 @@
 #define PIT_CMD_BCD        0x01 // 00000001b - 4-digit BCD counter
                                 //
 #define PIT_BASE_FREQUENCY 1193182
+#define TIME_SLICE_QUANTUM 5
 
 typedef struct {
     uint32_t hours;

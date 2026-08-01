@@ -4,10 +4,16 @@
 #include <timer.h>
 #include <uptime_display.h>
 
+static char kbd_buffer[KEYBOARD_BUFFER_SIZE];
+static volatile uint8_t kbd_head = 0;
+static volatile uint8_t kbd_tail = 0;
+
 extern size_t cursor_row;
 extern size_t cursor_col;
 
 static int shift_state = 0;
+
+int keyboard_focus = 0;
 
 static const char ascii_characters[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
@@ -35,29 +41,13 @@ static const char ascii_shifted_characters[128] = {
 
 char get_char(void)
 {
-    uint8_t status;
-    uint8_t scancode;
-
-    while(1){
-        draw_current_system_uptime();
-
-        status = inb(0x64);
-
-        if (status & 0x01){
-            scancode = inb(KEYBOARD_DATA_PORT);
-    
-            if (scancode & 0x80){
-                continue;
-            }
-            if (scancode < sizeof(ascii_characters)){
-                int shift_pressed = (shift_state != 0);
-                char ascii = shift_pressed? ascii_shifted_characters[scancode] : ascii_characters[scancode];
-                if (ascii != '0' && ascii != 0){
-                    return ascii;
-                }
-            }
-        }
+    while (kbd_head == kbd_tail){
+        asm volatile("hlt");
     }
+
+    char c = kbd_buffer[kbd_tail];
+    kbd_tail = (kbd_tail + 1) % KEYBOARD_BUFFER_SIZE;
+    return c;
 }
 
 void keyboard_handler(void)
@@ -125,10 +115,23 @@ void keyboard_handler(void)
                 break;
  
             default:
+                if (clean_index < sizeof(ascii_characters)){
+                int shift_pressed = (shift_state != 0);
+                char ascii = shift_pressed? ascii_shifted_characters[clean_index] : ascii_characters[clean_index];
+                if (ascii != 0 && ascii != '0'){
+                    uint8_t next_head = (kbd_head + 1) % KEYBOARD_BUFFER_SIZE;
+                    if (next_head != kbd_tail){
+                        kbd_buffer[kbd_head] = ascii;
+                        kbd_head = next_head;
+                        }
+                    }
+                }
                 // Default key handling is done by read_command() in shell logic
                 break;
         }
     }
+
+
 
     send_eoi(1);
 }

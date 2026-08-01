@@ -5,7 +5,8 @@
 #include <file_system.h>
 #include <timer.h>
 #include <uptime_display.h>
-
+#include <process.h>
+#include <snake.h>
 
 void read_command(char* buffer, int max_size)
 { 
@@ -13,6 +14,8 @@ void read_command(char* buffer, int max_size)
     char c;
 
     while(1){
+        if (keyboard_focus == 0){
+
         c = get_char();
 
         if (c == '\n' || c == '\r'){
@@ -33,6 +36,7 @@ void read_command(char* buffer, int max_size)
                 index++;
                 vga_putc(c);
             }
+        }
         }
     }
 }
@@ -202,7 +206,61 @@ void execute_command(char* command, char* args)
                 vga_puts(timer_buffer);
                 vga_putc('\n');
     }
+    else if(my_strcmp(command, "ps") == 0){
+        if (head_process == NULL){
+            vga_puts("No processes running.\n");
+        }
+        vga_puts("PID\t\tSTATE\t\tESP\n");
+        vga_puts("---\t-----\t\t---\n");
+        pcb_t* current = head_process;
+        do {
+            vga_print_hex(current->pid);
+            vga_puts("\t");
+            if (current->state == PROCESS_STATE_RUNNING){
+                vga_puts("RUNNING\t\t");
+            }else if (current->state == PROCESS_STATE_READY){
+                vga_puts("READY\t\t");
+            }else if (current->state == PROCESS_STATE_BLOCKED){
+                vga_puts("BLOCKED\t\t");
+            }else if (current->state == PROCESS_STATE_TERMINATED){
+                vga_puts("TERMINATED\t");
+            }else if (current->state == PROCESS_STATE_WAITING){
+                vga_puts("WAITING\t\t");
+            }
 
+            vga_print_hex(current->esp);
+            vga_puts("\n");
+            current = current->next_process;
+        }while(current != head_process);
+    }
+    else if (my_strcmp(command, "snake") == 0){
+        pcb_t* snake_pcb = process_create(snake_main);
+        if (snake_pcb == NULL){
+            vga_puts("Failed to start snake\n");
+            return;
+        }
+
+        vga_puts("New process stack at: ");
+        vga_print_hex((uint32_t)snake_pcb->stack_base);
+        vga_puts("\n");
+
+        current_process->state = PROCESS_STATE_BLOCKED;
+        current_process->waiting_on_process = snake_pcb->pid;
+
+        pcb_t* temp = head_process;
+        int count = 0;
+        while (temp != NULL && count < 10) {
+            vga_puts("Task found: ");
+            vga_print_hex(temp->pid);
+            vga_puts(" | State: "); vga_print_hex(temp->state); // <--- CHECK THIS
+            vga_puts("\n");
+            temp = temp->next_process;
+            count++;
+            if (temp == head_process) break; // Circular loop closed correctly
+        }
+
+        return;  
+    }
     // Command Not Found
     else {
         vga_puts("Error: Command '");
@@ -214,44 +272,33 @@ void execute_command(char* command, char* args)
 
 void shell_main(void)
 {
-    char input_buffer[256];
-    char command[64];
-    char args[192];
-   
-    clear_line(1);
-    clear_line(2);
-    clear_line(3);
-    clear_line(4);
-    clear_line(5);
-    clear_line(6);
-    clear_line(7);
-    clear_line(8);
-    clear_line(9);
-    clear_line(10);
-    clear_line(11);
-    clear_line(14);
-    clear_line(15);
+    asm volatile("sti");
+    static char input_buffer[256];
+    static char command[64];
+    static char args[192];
+    
+    clear_vga_buffer();
     set_software_cursor(3, 0);
     vga_puts("--- Kernel Shell Initialized ---\n");
-    vga_set_text_attribute(VGA_ATTR_RED_ON_BLACK);
+    vga_set_text_attribute(VGA_ATTR_RED_ON_WHITE);
     vga_puts("YOU ARE IN **RING 0** PLEASE DONT DO ANYTHING STUPID!\n");
     vga_set_default_text_attribute();
     vga_puts("");
     vga_puts("Type 'help' for a list of commands.\n\n");
 
     while(1){
-        vga_set_text_attribute(VGA_ATTR_PURPLE_ON_BLACK);
-        vga_set_cursor_attribute(VGA_COLOR_WHITE);
+        vga_set_text_attribute(VGA_ATTR_PURPLE_ON_WHITE);
+        vga_set_cursor_attribute(VGA_COLOR_BLACK);
         vga_puts("[kernel@imanios /]$ ");
         
-        vga_set_text_attribute(VGA_ATTR_WHITE_ON_BLACK);
+        vga_set_text_attribute(VGA_ATTR_BLACK_ON_WHITE);
         read_command(input_buffer, 256);
         if (input_buffer[0] == '\0'){
             continue;
         }
 
         parse_cmd(input_buffer, command, args);
-        vga_set_text_attribute(VGA_ATTR_GREEN_ON_BLACK);
+        vga_set_text_attribute(VGA_ATTR_GREEN_ON_WHITE);
         execute_command(command, args);
     }
 }

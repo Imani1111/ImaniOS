@@ -2,10 +2,12 @@
 #include <idt.h>
 #include <uptime_display.h>
 #include <vga.h>
+#include <process.h>
 
 extern void vga_cursor_tick(void);
 volatile uint32_t timer_ticks = 0;
 static uint32_t timer_frequency = 100;  // Default fallback for getting system uptime 
+static uint32_t slice_ticks = 0;
 
 void initialize_timer(uint32_t target_frequency)
 {
@@ -30,26 +32,18 @@ void initialize_timer(uint32_t target_frequency)
 
 void timer_handler(void)
 {
-    timer_ticks++;
-
-    vga_cursor_tick();
-    
-    // If PIT is 100Hz, this triggers exactly once per second
-    if (timer_ticks % 100 == 0) { 
-        draw_system_uptime(); 
-    }
-
-    //vga_update_screen();
-
+    timer_ticks++; 
+    vga_cursor_tick(); 
     send_eoi(0);
 }
 
 Uptime_t get_system_uptime()
 {
-    Uptime_t system_uptime;
+    Uptime_t system_uptime = {0};
     uint32_t current_ticks = timer_ticks;
 
-    uint32_t total_ms = (current_ticks * 1000) / timer_frequency;
+    uint32_t freq = 100;
+    uint32_t total_ms = (current_ticks * 1000) / freq;
     system_uptime.milliseconds = total_ms % 1000;
 
     uint32_t total_seconds = total_ms / 1000;

@@ -6,6 +6,12 @@
 #include <uptime_display.h>
 #include <shell.h>
 #include <file_system.h>
+#include <process.h>
+#include <memory.h>
+
+extern void start_multitasking(uint32_t first_esp);
+extern int next_pid;
+extern heap_block_t* heap_head;
 
 void type_writer(const char* str, uint32_t delay) {
     for (int i = 0; str[i] != '\0'; i++) {
@@ -14,10 +20,53 @@ void type_writer(const char* str, uint32_t delay) {
     }
 }
 
+void task1(void) {
+    while (1) {
+        vga_puts_at("TM", 0, 78, VGA_ATTR_GREEN_ON_BLACK);
+    }
+}
+
+void task2(void) {
+    while (1) {
+        vga_puts_at("T1", 0, 78, VGA_ATTR_CYAN_ON_BLACK);
+    }
+}
+
+void debug_processes()
+{
+        // Verify the list
+    vga_puts("--- SYSTEM LIST VERIFICATION ---\n");
+    pcb_t* current = head_process;
+    if (current == NULL) {
+        vga_puts("List is EMPTY!\n");
+    } else {
+        do {
+            vga_puts("PID: "); vga_print_hex(current->pid);
+            vga_puts(" -> ");
+            current = current->next_process;
+        } while (current != head_process);
+            vga_puts(" (Back to start)\n");
+    }
+    exit_process();
+}
+
 void kernel_main() {
+    asm volatile("cli");
     vga_init();
     initialize_idt();
+    
+    heap_init();
+    process_init();
+    process_create(draw_system_uptime);
+    //process_create(debug_processes);
+    
+    //process_create(task1);
+    //process_create(task2);
+    process_create(shell_main);
+    process_create(process_reaper);
+
     initialize_timer(100);
+        
     set_software_cursor(2, 0);
 
     vga_puts("========================================================\n");
@@ -38,24 +87,22 @@ void kernel_main() {
 
    
     vga_puts("[  OK  ] PIT Timer: Calibrated to 100Hz.\n");
-    stall_cpu(200);
+        //stall_cpu(200);
     
     clear_vga_buffer();
 
-    // Safely unmask ONLY the timer (bit 0) and keyboard (bit 1)
-    outb(0x21, 0xF8);
     
     vga_puts("[  OK  ] VGA Driver: 80x25 Text Mode Initialized.\n");
     vga_puts("[  OK  ] PS/2 Keyboard Driver: Registered.\n");
-    stall_cpu(150);
+    //stall_cpu(150);
 
     vga_puts_at(" !!! SYSTEM NOTICE: INITIALIZING IMANI-CORE SUITE !!! ", 4, 0, VGA_ATTR_RED_ON_WHITE);
     vga_putc('\n');
     vga_putc('\n');
 
-    type_writer("Booting ImaniOS! . . .", 80);
+    //type_writer("Booting ImaniOS! . . .", 80);
     
-    stall_cpu(300);
+    //stall_cpu(300);
 
     clear_vga_buffer();
     
@@ -70,7 +117,7 @@ void kernel_main() {
             //int volatile trigger_fault = 10 / local_var; 
             //(void)trigger_fault;
 
-    asm volatile("sti"); 
+    
     vga_puts("\n\n[  OK  ] Hardware Interrupts (STI) enabled successfully.\n");
     vga_puts("[ INFO ] System tick handler: Active (Cursor Blinking).\n");
 
@@ -79,9 +126,16 @@ void kernel_main() {
     fs_format();
     vga_puts("[  OK  ] File system formatted and mounted successfully.\n");
     
-    stall_cpu(200);
+    //stall_cpu(200);
     vga_puts("Launching interactive shell...\n");
-    stall_cpu(100);
+    //stall_cpu(100);
+
+   
+    // Safely unmask ONLY the timer (bit 0) and keyboard (bit 1)
+    outb(0x21, 0xF8);
+    current_process = head_process;
+    asm volatile("sti");
     
-    shell_main();
+    start_multitasking(current_process->esp);
+
 }

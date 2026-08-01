@@ -43,7 +43,7 @@ void pad_zero(char* string, int min_width)
 
     if (len >= min_width) return;
     int padding_needed = min_width - len;
-
+    
     for (int i = len; i >= 0; i--){
         string[i + padding_needed] = string[i];
     }
@@ -54,33 +54,36 @@ void pad_zero(char* string, int min_width)
 
 void draw_system_uptime()
 {
-    Uptime_t system_uptime = get_system_uptime();
+    while (1){
+        Uptime_t system_uptime = get_system_uptime();
 
-    char hour_str[12];
-    char minutes_str[4];
-    char seconds_str[4];
-    char ms_str[5];
+        static char hour_str[32];
+        static char minutes_str[16];
+        static char seconds_str[16];
+        static char ms_str[16];
 
-    utoa(system_uptime.hours, hour_str);
-    utoa(system_uptime.minutes, minutes_str);
-    utoa(system_uptime.seconds, seconds_str);
-    utoa(system_uptime.milliseconds, ms_str);
+        utoa(system_uptime.hours, hour_str);
+        utoa(system_uptime.minutes, minutes_str);
+        utoa(system_uptime.seconds, seconds_str);
+        utoa(system_uptime.milliseconds, ms_str);
 
-    pad_zero(ms_str, 3);
-    pad_zero(seconds_str, 2);
-    pad_zero(minutes_str, 2);
+        pad_zero(ms_str, 3);
+        pad_zero(seconds_str, 2);
+        pad_zero(minutes_str, 2);
 
-    char timer_buffer[64];
+        char timer_buffer[64];
 
-    my_strcpy(timer_buffer, "SYSTEM UPTIME: ");
-    my_strcat(timer_buffer, hour_str);
-    my_strcat(timer_buffer, ":");
-    my_strcat(timer_buffer, minutes_str);
-    my_strcat(timer_buffer, ":");
-    my_strcat(timer_buffer, seconds_str);
+        my_strcpy(timer_buffer, "SYSTEM UPTIME: ");
+        my_strcat(timer_buffer, hour_str);
+        my_strcat(timer_buffer, ":");
+        my_strcat(timer_buffer, minutes_str);
+        my_strcat(timer_buffer, ":");
+        my_strcat(timer_buffer, seconds_str);
    
-    clear_line(0);
-    vga_puts_at(timer_buffer, 0, 0, VGA_ATTR_WHITE_ON_BLUE);
+        clear_line(0);
+        vga_puts_at(timer_buffer, 0, 0, VGA_ATTR_WHITE_ON_BLUE);
+        stall_cpu(10);
+    }
 }
 
 void draw_current_system_uptime()

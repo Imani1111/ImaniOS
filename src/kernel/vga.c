@@ -31,9 +31,9 @@
 size_t cursor_row = 8;
 size_t cursor_col = 0;
 
-uint8_t current_screen_attribute = VGA_ATTR_WHITE_ON_BLACK;
-static uint8_t current_cursor_attribute = VGA_COLOR_WHITE;
-uint8_t current_text_attribute = VGA_ATTR_GREEN_ON_BLACK;
+uint8_t current_screen_attribute = VGA_ATTR_BLACK_ON_WHITE;
+static uint8_t current_cursor_attribute = VGA_COLOR_BLACK;
+uint8_t current_text_attribute = VGA_ATTR_GREEN_ON_WHITE;
 
 static volatile int software_cursor_enabled = 1;
 static volatile int cursor_is_visible = 0;
@@ -225,6 +225,22 @@ void vga_puts(const char* string)
     //vga_update_screen();
 }
 
+void vga_print_hex(uint32_t val) {
+    char hex_chars[] = "0123456789ABCDEF";
+    char buffer[11]; // "0x" + 8 hex digits + null terminator
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    buffer[10] = '\0';
+    
+    for (int i = 0; i < 8; i++) {
+        buffer[9 - i] = hex_chars[val & 0xF];
+        val >>= 4;
+    }
+    
+    vga_puts(buffer);
+}
+
+
 void vga_puts_at(const char* string, int row, int col, uint8_t attribute)
 {
     size_t offset = row * VGA_WIDTH + col; 
@@ -301,7 +317,7 @@ void vga_cursor_tick()
 
 void vga_set_default_text_attribute()
 {
-    current_text_attribute = VGA_ATTR_GREEN_ON_BLACK;
+    current_text_attribute = VGA_ATTR_GREEN_ON_WHITE;
 }
 
 void vga_set_screen_attribute(uint8_t attribute)
@@ -323,8 +339,8 @@ void vga_init()
 {
     disable_hardware_cursor();
 
-    current_screen_attribute = VGA_ATTR_WHITE_ON_BLACK; 
-    current_text_attribute = VGA_ATTR_GREEN_ON_BLACK;
+    current_screen_attribute = VGA_ATTR_BLACK_ON_WHITE; 
+    current_text_attribute = VGA_ATTR_GREEN_ON_WHITE;
     
     // Explicitly force initialization state
     software_cursor_enabled = 1; 

@@ -7,6 +7,7 @@ struct Idt_pointer idt_pointer;
 extern void isr0_divide_by_zero();
 extern void isr20_pit_timer();
 extern void isr21_keyboard();
+extern void isr13_gp_fault();
 
 void outb(uint16_t port, uint8_t value)
 {
@@ -75,6 +76,7 @@ void set_idt_gate(struct IdtDescriptor32bit* idt_entry, uint32_t address_of_the_
 
 void exception_handler() 
 {
+    clear_vga_buffer();
     const char* error_msg = " EXCEPTION TRIGGERED: DIVISION BY ZERO! ";
     
     vga_puts_at("  ======================================  ", 10, 20, VGA_ATTR_WHITE_ON_RED);
@@ -92,6 +94,26 @@ void exception_handler()
     };
 }
 
+void gp_fault_handler(void)
+{
+       clear_vga_buffer();
+    const char* error_msg = " EXCEPTION TRIGGERED: GENERAL PROTECTION FAULT! ";
+    
+    vga_puts_at("  ======================================  ", 10, 20, VGA_ATTR_WHITE_ON_RED);
+    vga_puts_at("  KERNEL PANIC: UNHANDLED EXCEPTION     ", 11, 20, VGA_ATTR_WHITE_ON_RED);
+    vga_puts_at("  --------------------------------------  ", 12, 20, VGA_ATTR_WHITE_ON_RED);
+    vga_puts_at(error_msg,                                       13, 22, VGA_ATTR_WHITE_ON_RED);
+    vga_puts_at("  System Halting....                       ", 14, 20, VGA_ATTR_WHITE_ON_RED);
+    vga_puts_at("  ======================================  ", 15, 20, VGA_ATTR_WHITE_ON_RED);
+
+    // Disable interrupts and freeze the CPU
+    asm volatile("cli");
+
+    while(1){
+        asm volatile("hlt");
+    }; 
+}
+
 void initialize_idt()
 {
     remap_pic();
@@ -104,6 +126,7 @@ void initialize_idt()
     }
 
     set_idt_gate(&idt_entries[0], (uint32_t)isr0_divide_by_zero, GDT_CODE_SEGMENT, KERNEL_INTERRUPT_FLAG_32BIT);
+    set_idt_gate(&idt_entries[13], (uint32_t)isr13_gp_fault, GDT_CODE_SEGMENT, KERNEL_INTERRUPT_FLAG_32BIT);
     set_idt_gate(&idt_entries[32], (uint32_t)isr20_pit_timer, GDT_CODE_SEGMENT, KERNEL_INTERRUPT_FLAG_32BIT);
     set_idt_gate(&idt_entries[33], (uint32_t)isr21_keyboard, GDT_CODE_SEGMENT, KERNEL_INTERRUPT_FLAG_32BIT);
 

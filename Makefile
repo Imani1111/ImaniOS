@@ -37,7 +37,10 @@ KERNEL_OBJS = $(BUILD_DIR)/kernel_entry.o \
               $(BUILD_DIR)/string.o \
               $(BUILD_DIR)/shell.o \
               $(BUILD_DIR)/file_system.o \
-              $(BUILD_DIR)/uptime_display.o
+              $(BUILD_DIR)/uptime_display.o \
+			  $(BUILD_DIR)/process.o \
+			  $(BUILD_DIR)/memory.o \
+			  $(BUILD_DIR)/snake.o
 
 .PHONY: all clean run
 
@@ -91,6 +94,15 @@ $(BUILD_DIR)/file_system.o: $(KERNEL_DIR)/file_system.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/uptime_display.o: $(KERNEL_DIR)/uptime_display.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/memory.o: $(KERNEL_DIR)/memory.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/process.o: $(KERNEL_DIR)/process.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/snake.o: $(KERNEL_DIR)/snake.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR):

@@ -5,6 +5,7 @@
 section .text.prologue
 
 _start:
+    cli
     ; 1. Preserve EBX (our framebuffer address from stage2) before doing anything else
     push ebx
 
